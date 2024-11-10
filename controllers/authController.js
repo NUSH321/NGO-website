@@ -1,8 +1,13 @@
-// authController.js
-
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
+
+/**
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Authentication endpoints
+ */
 
 /**
  * @swagger
@@ -35,10 +40,12 @@ exports.adminRegister = async (req, res) => {
 
     await User.create({ username, password: hashedPassword, type: "admin" });
 
-    res.status(200).send({
+    const response = {
       message: "User registered successfully as admin.",
       username: username,
-    });
+    };
+
+    res.status(200).send(response);
   } catch (err) {
     res.status(500).send("Error on the server.");
   }
@@ -46,9 +53,9 @@ exports.adminRegister = async (req, res) => {
 
 /**
  * @swagger
- * /auth/register/volunteer:
+ * /auth/register/schooladmin:
  *   post:
- *     summary: Register as a volunteer
+ *     summary: Register as school admin
  *     tags: [Auth]
  *     security:
  *       - bearerAuth: []
@@ -65,32 +72,35 @@ exports.adminRegister = async (req, res) => {
  *                 type: string
  *     responses:
  *       200:
- *         description: User registered successfully as a volunteer.
+ *         description: User registered successfully as school admin.
  *       403:
- *         description: Access denied. Only admin can create volunteers.
+ *         description: Access denied. Only admin can create school admins.
  *       500:
  *         description: Error on the server.
  */
-exports.volunteerRegister = async (req, res) => {
+exports.ngoAdminRegister = async (req, res) => {
   try {
     const { username, password } = req.body;
 
     const hashedPassword = bcrypt.hashSync(password, 8);
 
-    // Check if the requester is admin
     if (req.user && req.user.type === "admin") {
       await User.create({
         username,
         password: hashedPassword,
-        type: "volunteer",
+        type: "ngo_admin",
       });
 
-      res.status(200).send({
-        message: "User registered successfully as volunteer.",
+      const response = {
+        message: "User registered successfully as ngo admin.",
         username: username,
-      });
+      };
+
+      res.status(200).send(response);
     } else {
-      res.status(403).send("Access denied. Only admin can create volunteers.");
+      res
+        .status(403)
+        .send("Access denied. Only admin can create school admins.");
     }
   } catch (err) {
     res.status(500).send("Error on the server.");
@@ -112,8 +122,10 @@ exports.volunteerRegister = async (req, res) => {
  *             properties:
  *               username:
  *                 type: string
+ *                 example: "testuser"
  *               password:
  *                 type: string
+ *                 example: "password123"
  *     responses:
  *       200:
  *         description: User logged in successfully.
@@ -124,12 +136,34 @@ exports.volunteerRegister = async (req, res) => {
  *               properties:
  *                 auth:
  *                   type: boolean
+ *                   example: true
  *                 token:
  *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       401:
  *         description: Invalid credentials.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 auth:
+ *                   type: boolean
+ *                   example: false
+ *                 token:
+ *                   type: string
+ *                   nullable: true
+ *                   example: null
  *       404:
  *         description: User not found.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "User not found."
  *       500:
  *         description: Error on the server.
  */
@@ -137,20 +171,35 @@ exports.login = async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const user = await User.findOne({ where: { username } });
-
-    if (!user) return res.status(404).send("User not found.");
-
-    const passwordIsValid = bcrypt.compareSync(password, user.password);
-    if (!passwordIsValid)
-      return res.status(401).send({ auth: false, token: null });
-
-    const token = jwt.sign({ id: user.id }, process.env.SECRET, {
-      expiresIn: 86400, // 24 hours
+    const user = await User.findOne({
+      where: { username: username }
     });
 
-    res.status(200).send({ auth: true, token });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const passwordIsValid = bcrypt.compareSync(password, user.password);
+    if (!passwordIsValid) {
+      return res.status(401).json({
+        auth: false,
+        token: null
+      });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, type: user.type },
+      process.env.SECRET,
+      { expiresIn: 86400 }
+    );
+
+    // Simplified response with just auth and token
+    res.status(200).json({
+      auth: true,
+      token: token
+    });
   } catch (err) {
     res.status(500).send("Error on the server.");
   }
+  
 };

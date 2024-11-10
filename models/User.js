@@ -12,13 +12,13 @@ const User = sequelize.define(
     username: {
       type: DataTypes.STRING,
       unique: true,
-      allowNull: false,
+      allowNull: false, // Mandatory username
     },
     password: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: false, // Mandatory password
     },
-    role: {
+    role: { // Role adapted for NGO use
       type: DataTypes.ENUM(
         "admin",
         "donor",
@@ -76,10 +76,10 @@ const User = sequelize.define(
       type: DataTypes.STRING,
     },
     occupation: {
-      type: DataTypes.STRING, // Occupation, relevant for donors and volunteers
+      type: DataTypes.STRING, // Relevant for donors and volunteers
     },
     organization: {
-      type: DataTypes.STRING, // Organization they belong to, if any
+      type: DataTypes.STRING, // Affiliation for NGO roles
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -91,7 +91,7 @@ const User = sequelize.define(
     },
   },
   {
-    tableName: "Users",
+    tableName: "users",
     timestamps: true,
   }
 );

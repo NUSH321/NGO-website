@@ -1,3 +1,4 @@
+
 const swaggerJsDoc = require("swagger-jsdoc");
 const swaggerUi = require("swagger-ui-express");
 const dotenv = require("dotenv");
@@ -8,9 +9,9 @@ const swaggerOptions = {
   swaggerDefinition: {
     openapi: "3.0.0",
     info: {
-      title: "NGO Website API",
+      title: "NGO Management API",
       version: "1.0.0",
-      description: "API documentation for NGO Website",
+      description: "API documentation for NGO Website ",
     },
     servers: [
       {

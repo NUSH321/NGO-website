@@ -7,27 +7,28 @@ module.exports = async (req, res, next) => {
   const token = req.header("Authorization");
   if (!token) return res.status(401).send("Access denied. No token provided.");
 
+  // Check token format (assuming 'Bearer <token>')
+  const tokenValue = token.split(" ")[1];
+  if (!tokenValue) return res.status(401).json({ message: "Invalid token format." });
+
   try {
-    // Remove the Bearer prefix if present
-    const tokenWithoutBearer = token.startsWith("Bearer ") ? token.split(" ")[1] : token;
-    
-    // Verify the token
-    const decoded = jwt.verify(tokenWithoutBearer, process.env.SECRET);
-    
-    // Find the user associated with the token
+    // Verify and decode the token using the secret key from .env
+    const decoded = jwt.verify(tokenValue, process.env.SECRET);
+
+    // Find the user in the database
     const user = await User.findByPk(decoded.id);
-    if (!user) return res.status(404).send("User not found.");
+    if (!user) return res.status(404).json({ message: "User not found." });
 
     // Attach user info to request object
     req.user = {
       id: decoded.id,
-      type: user.type,
+      type: user.type, // assuming 'type' is a field in your User model
     };
 
-    // Call the next middleware or route handler
+    // Proceed to the next middleware or route handler
     next();
-  } catch (ex) {
-    // Handle errors (avoid exposing detailed error messages)
-    res.status(400).send("Invalid token.");
+  } catch (error) {
+    // Catch and handle errors (token expired, invalid signature, etc.)
+    res.status(400).json({ message: "Invalid token.", error: error.message });
   }
 };
